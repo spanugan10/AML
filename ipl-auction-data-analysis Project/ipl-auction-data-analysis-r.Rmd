@@ -1,0 +1,45 @@
+---
+title: "FML A1"
+author: "Sai Kiran Panuganti"
+date: "2023-01-29"
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#installing the required package
+library(readr)
+```
+
+```{r}
+#importing the dataset(Downloaded from kaggle)
+IPL<-read.csv("C:/Users/shiva/Downloads/ipl_2023_dataset.csv")
+IPL
+```
+
+```{r}
+#printing out the descriptive statistics
+head(IPL)
+summary(IPL)
+```
+
+```{R}
+#Transforming the variable
+hist(IPL$Cost.in....K.)
+````
+
+```{R}
+#Plotting
+plot(IPL$Base.Price, IPL$Cost.in.Rs...CR.)
+```
+
+
+
+
+```
