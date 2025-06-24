@@ -1,0 +1,134 @@
+---
+title: "FML Assignment 2"
+author: "Sai Kiran"
+date: "2023-02-19"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(class)
+library(dplyr)
+library(caret)
+library(tinytex)
+ub=read.csv("C:/Users/panug/Downloads/UniversalBank.csv")
+```
+
+#eliminating unwanted columns like ID and Zip code
+```{r}
+ub$ID<-NULL
+ub$ZIP.Code<-NULL
+View(ub)
+```
+```{r}
+#converting to a variable factor
+ub$Personal.Loan=as.factor(ub$Personal.Loan)
+```
+#using is.na command to check if there are any NA values
+```{r}
+head(is.na(ub))
+```
+#transforming education into character
+```{r}
+ub$Education=as.character(ub$Education)
+```
+#Creating dummy  variables
+```{r}
+edu.1 <- ifelse(ub$Education==1 ,1,0)
+edu.2 <- ifelse(ub$Education==2 ,1,0)
+edu.3 <- ifelse(ub$Education==3 ,1,0)
+ub.2<-data.frame(Age=ub$Age,Experience=ub$Experience,Income=ub$Income,Family=ub$Family,CCAvg=ub$CCAvg, education_1=edu.1,edu.2=edu.2,edu.3=edu.3,Personal.Loan=ub$Personal.Loan,Mortgage=ub$Mortgage,Securities.Account=ub$Securities.Account,CD.Account=ub$CD.Account,Online=ub$Online,CreditCard=ub$CreditCard)
+```
+#setting up testdata
+```{r}
+UB_test1<-data.frame(Age=40,Experience=10,Income=84,Family=2,CCAvg=2,edu.1=0,edu.2=1,edu.3=0,Mortgage=0,Securities.Account=0,CD.Account=0,Online=1,CreditCard=1)
+```
+#dividing data sets for training and testing
+```{r}
+set.seed(130)
+ub.dummy<- createDataPartition(ub.2$Personal.Loan,p=.6,list=FALSE,times=1)
+train1.ub <- ub.2[ub.dummy, ]
+valid1.ub<- ub.2[-ub.dummy, ]
+```
+#Normalization
+```{r}
+ub.norm=preProcess(train1.ub[,-(6:9)],method=c("center","scale"))
+trainNorm.ub =predict(ub.norm,train1.ub)
+validNorm.ub =predict(ub.norm,valid1.ub)
+testNorm.ub =predict(ub.norm,UB_test1)
+View(trainNorm.ub)
+```
+#printing knn algorithm
+```{r}
+predicttrain.ub<-trainNorm.ub[,-9]
+trainsample.ub<-trainNorm.ub[,9]
+predictvalid.ub<-validNorm.ub[,-9]
+validsample.ub<-validNorm.ub[,9]
+
+predict.ub<-knn(predicttrain.ub, testNorm.ub, cl=trainsample.ub,k=1)
+predict.ub
+
+predict.uvb <- knn(predicttrain.ub, predictvalid.ub, cl=trainsample.ub, k=1)
+```
+
+#The loan proposal was turned down by the client. The decision is made when the k value is 0.
+
+#printing out the best value of k
+```{r}
+set.seed(130)
+grid.ub<-expand.grid(k=seq(1:30))                  
+model.ub<-train(Personal.Loan~.,data=trainNorm.ub,method="knn",tuneGrid=grid.ub)
+model.ub
+
+value_k<-model.ub$bestTune[[1]]
+```
+#confusion matrix - validation dataset
+```{r}
+confusionMatrix(predict.uvb,validsample.ub)
+```
+
+#50:30:20 Repartition
+```{r}
+data_part_new <- createDataPartition(ub.2$Personal.Loan,p=0.5, list = F)
+Train_new <- ub.2[data_part_new,]
+Train_db_new <- ub.2[-data_part_new,]
+
+data_part_new_1 <- createDataPartition(Train_db_new$Personal.Loan, p=0.6, list = F)
+validate_new <- Train_db_new[data_part_new_1,]
+test_new <- Train_db_new[-data_part_new_1,]
+```
+#Normalization
+```{r}
+norm_new <- preProcess(Train_new[,-(6:9)], method=c("center","scale"))
+Train_new_p <- predict(norm_new, Train_new)
+Validate_new_p <- predict(norm_new, validate_new)
+Test_new_p <- predict(norm_new, test_new)
+```
+#predictors and labels
+```{r}
+train_pre <- Train_new_p[,-9]
+validate_pre <- Validate_new_p[,-9]
+test_pre <- Test_new_p[,-9]
+
+train_l <- Train_new_p[,9]
+validate_l <- Validate_new_p[,9]
+test_l <- Test_new_p[,9]
+```
+#knn
+```{r}
+knn.t <- knn(train_pre,train_pre,cl= train_l, k=value_k)
+
+knn.v <- knn(train_pre,validate_pre,cl=train_l, k=value_k)
+
+knn.tes <- knn(train_pre,test_pre,cl=train_l, k=value_k)
+
+confusionMatrix(knn.t,train_l)
+confusionMatrix(knn.v,validate_l)
+confusionMatrix(knn.tes,test_l)
+```
